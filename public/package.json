@@ -4,7 +4,7 @@
   "proxy": "http://localhost:3000",
   "private": true,
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.3",
     "dangerously-set-html-content": "^1.0.8",
     "get-browser-fingerprint": "^2.0.1",
     "history": "^4.10.1",
@@ -12,7 +12,7 @@
     "react-dom": "^17.0.2",
     "react-owl-carousel": "^2.3.3",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.3",
+    "react-scripts": "5.0.0",
     "typescript": "4.0.5",
     "web-vitals": "^0.2.4"
   },
