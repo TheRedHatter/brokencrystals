@@ -28,7 +28,7 @@
     "@nestjs/common": "^7.6.7",
     "@nestjs/config": "^0.6.2",
     "@nestjs/core": "^7.6.7",
-    "@nestjs/platform-fastify": "^7.6.7",
+    "@nestjs/platform-fastify": "^9.2.1",
     "@nestjs/swagger": "^4.7.12",
     "@sectester/bus": "^0.16.5",
     "@sectester/core": "^0.16.5",
