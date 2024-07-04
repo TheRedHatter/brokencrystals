@@ -33,7 +33,7 @@
     "@nestjs/common": "^9.3.9",
     "@nestjs/config": "^2.3.1",
     "@nestjs/core": "^9.3.9",
-    "@nestjs/graphql": "^11.0.0",
+    "@nestjs/graphql": "^12.2.0",
     "@nestjs/mercurius": "^11.0.3",
     "@nestjs/platform-fastify": "^9.3.9",
     "@nestjs/swagger": "^6.2.1",
