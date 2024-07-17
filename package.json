@@ -40,7 +40,7 @@
     "@sectester/bus": "^0.16.5",
     "@sectester/core": "^0.16.5",
     "@sectester/repeater": "^0.16.5",
-    "@sectester/reporter": "^0.16.5",
+    "@sectester/reporter": "^0.29.0",
     "@sectester/runner": "^0.16.5",
     "@sectester/scan": "^0.16.5",
     "axios": "^0.21.4",
