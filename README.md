@@ -3,6 +3,8 @@
 Broken Crystals is a benchmark application that uses modern technologies and implements a set of common security vulnerabilities.
 
 The application contains:
+
+
 - React based web client
   - FE - http://localhost:8090
   - BE - http://localhost:3000
