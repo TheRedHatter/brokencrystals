@@ -15,7 +15,7 @@ name: Semgrep
 jobs:
   semgrep:
     name: semgrep/ci
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     container:
