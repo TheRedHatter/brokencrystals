@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@fastify/cookie": "^8.3.0",
-    "@fastify/multipart": "^7.4.1",
+    "@fastify/multipart": "^9.0.3",
     "@fastify/session": "^10.1.1",
     "@fastify/static": "^7.0.1",
     "@mercuriusjs/gateway": "^1.2.0",
