@@ -37,7 +37,7 @@ export class OrmConfigFactory {
       highlighter: new SqlHighlighter(),
       debug:
         this.configService.get<string>(
-          OrmModuleConfigProperties.ENV_DATABASE_PORT
+          OrmModuleConfigProperties.ENV_DATABASE_DEBUG
         ) === 'true',
       logger: logger.log.bind(logger)
     });
