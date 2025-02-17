@@ -4,6 +4,9 @@ Broken Crystals is a benchmark application that uses modern technologies and imp
 
 The application contains:
 
+
+
+
 - React based web client
   - FE - http://localhost:3001
   - BE - http://localhost:3000
