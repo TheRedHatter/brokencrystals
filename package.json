@@ -21,7 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@fastify/cookie": "^8.3.0",
+    "@fastify/cookie": "^9.2.0",
     "@fastify/multipart": "^7.4.1",
     "@fastify/session": "^10.1.1",
     "@fastify/static": "^7.0.1",
@@ -42,7 +42,7 @@
     "@sectester/repeater": "^0.16.5",
     "@sectester/reporter": "^0.16.5",
     "@sectester/runner": "^0.16.5",
-    "@sectester/scan": "^0.16.5",
+    "@sectester/scan": "^0.32.0",
     "axios": "^0.21.4",
     "bcrypt": "^5.1.0",
     "class-transformer": "^0.5.1",
