@@ -167,7 +167,6 @@ export class AppController {
     type: AppConfig
   })
   getConfig(): AppConfig {
-    this.logger.debug('Called getConfig');
     const config = this.appService.getConfig();
     return config;
   }

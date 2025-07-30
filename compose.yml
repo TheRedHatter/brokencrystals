@@ -28,6 +28,10 @@ services:
       timeout: 30s
     environment:
       NODE_ENV: production
+      CHAT_API_URL: http://ollama:11434/v1/chat/completions
+      CHAT_API_MODEL: smollm:135m
+      CHAT_API_TOKEN: ''
+      CHAT_API_MAX_TOKENS: 200
     deploy:
       restart_policy:
         condition: on-failure
@@ -42,6 +46,7 @@ services:
       - db
       - mailcatcher
       - keycloak
+      - ollama
 
   watchtower:
     image: 'containrrr/watchtower'
@@ -116,6 +121,28 @@ services:
     ports:
       - '1080:1080'
       - '1025:1025'
+    logging:
+      options:
+        max-file: '5'
+        max-size: '10m'
+
+  ollama:
+    image: 'brightsec/brokencrystals-ollama:smollm135m'
+    restart: always
+    healthcheck:
+      interval: 30s
+      retries: 5
+      test: ['CMD', 'ollama', 'list']
+      timeout: 10s
+      start_period: 60s
+    ports:
+      - '11434:11434'
+    deploy:
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: 2.0
     logging:
       options:
         max-file: '5'

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpClientService } from '../httpclient/httpclient.service';
 import { ChatMessage } from './api/ChatMessage';
 
-const DEFAULT_CHAT_API_MAX_TOKENS = 1000;
+const DEFAULT_CHAT_API_MAX_TOKENS = 200;
 
 interface ChatRequest {
   readonly model: string;
@@ -30,10 +30,10 @@ export class ChatService {
     if (
       !process.env.CHAT_API_URL ||
       !process.env.CHAT_API_MODEL ||
-      !process.env.CHAT_API_TOKEN
+      process.env.CHAT_API_TOKEN === undefined // Allow empty string since we use ollama by default
     ) {
       throw new Error(
-        'Chat API environment variables are missing. CHAT_API_URL, CHAT_API_MODEL, CHAT_API_TOKEN are mandatory.'
+        'Chat API environment variables are missing. CHAT_API_URL, CHAT_API_MODEL are mandatory. CHAT_API_TOKEN is required if using external services.'
       );
     }
 
@@ -53,7 +53,8 @@ export class ChatService {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${process.env.CHAT_API_TOKEN}`
-        }
+        },
+        timeout: 300000 // 5 minutes timeout for ollama service
       }
     );
 
