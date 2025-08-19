@@ -117,7 +117,7 @@ export class KeyCloakService implements OnModuleInit {
 
     if (!pems.has(kid)) {
       throw new UnauthorizedException(
-        'Authorization header contains an invalid JWT token.'
+        'Authorization header contains an invalid JWT token : pems does not have kid'
       );
     }
 

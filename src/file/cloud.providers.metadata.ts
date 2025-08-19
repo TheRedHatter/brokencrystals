@@ -8,29 +8,21 @@ export class CloudProvidersMetaData {
   public static readonly AZURE: string =
     'http://169.254.169.254/metadata/instance';
   public static readonly DIGITAL_OCEAN: string =
-    'http://169.254.169.254/metadata/v1/';
+    'http://169.254.169.254/metadata/v1';
+  public static readonly DIGITAL_OCEAN_JSON: string =
+    'http://169.254.169.254/metadata/v1.json'; //https://docs.digitalocean.com/reference/api/metadata/#tag/Droplet-Properties
   public static readonly AWS: string =
     'http://169.254.169.254/latest/meta-data/';
 
   private providers: Map<string, string> = new Map<string, string>();
 
   constructor() {
-    //TODO - set correct values
     this.providers.set(
       CloudProvidersMetaData.GOOGLE,
       `
-        attributes/
-        cpu-platform
-        description
-        instance
-        hostname
-        project
-        disks
-        service-accounts
-        tags
-        guest-attributes
-        maintenance-event
-        network-interfaces/
+        instance/
+        oslogin/
+        project/
     `.trim()
     );
     this.providers.set(
@@ -252,6 +244,7 @@ export class CloudProvidersMetaData {
         interfaces/
         dns/
         floating_ip/
+        reserved_ip/
         tags/
         features/
     `.trim()

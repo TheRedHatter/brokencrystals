@@ -1,5 +1,4 @@
 import { SecRunner } from '@sectester/runner';
-import { TestType } from '@sectester/scan';
 
 describe('/api', () => {
   const timeout = 600000;
@@ -17,7 +16,10 @@ describe('/api', () => {
   describe('GET /testimonials/count', () => {
     it('should not execute commands for SQL database', async () => {
       await runner
-        .createScan({ tests: [TestType.SQLI], name: 'SQLI' })
+        .createScan({
+          tests: ['sqli'],
+          name: expect.getState().currentTestName
+        })
         .timeout(timeout)
         .run({
           method: 'GET',

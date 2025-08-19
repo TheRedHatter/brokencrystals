@@ -113,7 +113,7 @@ export class AuthService {
 
     this.processors.set(
       JwtProcessorType.HMAC,
-      new JwtTokenWithHMACKeysProcessor(publicKey, privateKey)
+      new JwtTokenWithHMACKeysProcessor(privateKey)
     );
     this.processors.set(
       JwtProcessorType.RSA_SIGNATURE,

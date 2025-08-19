@@ -44,8 +44,7 @@ export class ProductsResolver {
       return true;
     } catch (err) {
       throw new InternalServerErrorException({
-        error: err.message,
-        location: __filename
+        error: err.message
       });
     }
   }

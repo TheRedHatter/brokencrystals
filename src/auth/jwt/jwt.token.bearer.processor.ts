@@ -16,14 +16,18 @@ export class JwtBearerTokenProcessor extends JwtTokenProcessor {
     const [header, payload] = this.parse(token);
     if (!header || !payload) {
       this.log.debug(`Invalid JWT token. parse() failure.`);
-      throw new Error('Authorization header contains an invalid JWT token.');
+      throw new Error(
+        'Authorization header contains an invalid JWT token: header or payload is missing.'
+      );
     }
 
     if (!header.kid) {
       this.log.debug(
         `Invalid JWT token. Expected a known KID but found ${header.kid}.`
       );
-      throw new Error('Authorization header contains an invalid JWT token.');
+      throw new Error(
+        'Authorization header contains an invalid JWT token: KID is missing.'
+      );
     }
 
     await this.decodeAndVerifyToken(token, header.kid);
@@ -69,7 +73,9 @@ export class JwtBearerTokenProcessor extends JwtTokenProcessor {
           `Authorization header contains a JWT token that expired at ${e.expiredAt.toISOString()}.`
         );
       }
-      throw new Error('Authorization header contains an invalid JWT token.');
+      throw new Error(
+        'Authorization header contains an invalid JWT token: ' + e.message
+      );
     }
   }
 }

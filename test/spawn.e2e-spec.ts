@@ -1,5 +1,4 @@
 import { SecRunner } from '@sectester/runner';
-import { TestType } from '@sectester/scan';
 
 describe('/api', () => {
   const timeout = 600000;
@@ -17,7 +16,10 @@ describe('/api', () => {
   describe('GET /spawn', () => {
     it('should not be able to execute shell commands on the host operating system', async () => {
       await runner
-        .createScan({ tests: [TestType.OSI], name: 'OS Command Injection' })
+        .createScan({
+          tests: ['osi'],
+          name: expect.getState().currentTestName
+        })
         .timeout(timeout)
         .run({
           method: 'GET',

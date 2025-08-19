@@ -40,7 +40,7 @@ export const Footer: FC = () => {
     },
     {
       name: 'Privacy policy',
-      url: 'https://takemeover-bright.s3.amazonaws.com/privacy-policy.pdf',
+      url: 'https://takemeover-brightsec.s3.amazonaws.com/privacy-policy.pdf',
       icon: 'bx-chevron-right'
     }
   ];

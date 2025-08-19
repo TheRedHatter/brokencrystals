@@ -33,4 +33,5 @@ lerna-debug.log*
 # IDE - VSCode
 .vscode/*
 
-keycloak/db
+# DB volumes
+.data

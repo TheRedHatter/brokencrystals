@@ -217,8 +217,7 @@ export class UsersController {
     const user = await this.usersService.findByEmail(email);
     if (!user) {
       throw new NotFoundException({
-        error: 'Could not file user',
-        location: __filename
+        error: 'Could not file user'
       });
     }
 
@@ -231,8 +230,7 @@ export class UsersController {
       return user.photo;
     } catch (err) {
       throw new InternalServerErrorException({
-        error: err.message,
-        location: __filename
+        error: err.message
       });
     }
   }
@@ -270,8 +268,7 @@ export class UsersController {
     const user = await this.usersService.findById(id);
     if (!user) {
       throw new NotFoundException({
-        error: 'Could not file user',
-        location: __filename
+        error: 'Could not file user'
       });
     }
 
@@ -310,8 +307,7 @@ export class UsersController {
       }
     } catch (err) {
       throw new InternalServerErrorException({
-        error: err.message,
-        location: __filename
+        error: err.message
       });
     }
 
@@ -401,8 +397,8 @@ export class UsersController {
       return keycloakUser;
     } catch (err) {
       throw new HttpException(
-        err.response.data ?? 'Something went wrong',
-        err.response.status ?? 500
+        err.response?.data ?? err.message ?? 'Something went wrong',
+        err.response?.status ?? 500
       );
     }
   }
@@ -552,8 +548,7 @@ export class UsersController {
       }
     } catch (err) {
       throw new InternalServerErrorException({
-        error: err.message,
-        location: __filename
+        error: err.message
       });
     }
   }

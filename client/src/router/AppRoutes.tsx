@@ -11,6 +11,7 @@ import AdminPage from '../pages/auth/AdminPage';
 import PasswordCheck from '../pages/auth/LoginNew/PasswordCheck';
 import Dashboard from '../pages/auth/Dashboard';
 import Chat from '../pages/chat/Chat';
+import NotFound from '../pages/NotFound';
 
 export const AppRoutes: FC = () => {
   const user = sessionStorage.getItem('email') || localStorage.getItem('email');
@@ -106,15 +107,9 @@ export const AppRoutes: FC = () => {
         }
       />
 
-      <Route
-        path="*"
-        element={
-          <>
-            <Navigate to={{ pathname: RoutePath.Home }} />
-            <Main />
-          </>
-        }
-      />
+      <Route path={RoutePath.Home} element={<Main />} />
+
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
