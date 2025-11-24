@@ -15,7 +15,8 @@ import {
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiHeader,
-  ApiQuery
+  ApiQuery,
+  ApiExcludeEndpoint
 } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtProcessorType } from '../auth/auth.service';
@@ -26,7 +27,8 @@ import { Product } from '../model/product.entity';
 import {
   API_DESC_GET_LATEST_PRODUCTS,
   API_DESC_GET_PRODUCTS,
-  API_DESC_GET_VIEW_PRODUCT
+  API_DESC_GET_VIEW_PRODUCT,
+  API_DESC_SEARCH_PRODUCTS_BY_NAME
 } from './products.controller.api.desc';
 
 @Controller('/api/products')
@@ -109,6 +111,29 @@ export class ProductsController {
       throw new BadRequestException('Limit must be positive');
     }
     const products = await this.productsService.findLatest(limit || 3);
+    return products.map((p: Product) => new ProductDto(p));
+  }
+
+  @Get('search')
+  @UseGuards(AuthGuard)
+  @JwtType(JwtProcessorType.RSA)
+  @ApiExcludeEndpoint()
+  @ApiQuery({ name: 'name', example: 'Amethyst', required: true })
+  @ApiOperation({
+    description: API_DESC_SEARCH_PRODUCTS_BY_NAME
+  })
+  @ApiOkResponse({
+    type: ProductDto,
+    isArray: true
+  })
+  async searchProductsByName(
+    @Query('name') name: string
+  ): Promise<ProductDto[]> {
+    if (!name) {
+      throw new BadRequestException('Product name is required');
+    }
+
+    const products = await this.productsService.searchByName(name);
     return products.map((p: Product) => new ProductDto(p));
   }
 

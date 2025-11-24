@@ -21,3 +21,7 @@ export const SWAGGER_DESC_UPLOAD_USER_PHOTO = `Uploads user profile photo`;
 export const SWAGGER_DESC_UPDATE_USER_INFO = `Method for updating user details. Vulnerability case: Mass Assignment allows an attacker to modify object properties, which are not supposed to be changed by the user`;
 
 export const SWAGGER_DESC_ADMIN_RIGHTS = `Endpoint for checking admin rights of authenticated user`;
+
+export const SWAGGER_DESC_GET_SELF = `Returns data of the authenticated user`;
+
+export const SWAGGER_DESC_UPDATE_SELF = `Updates all fields of the authenticated user`;

@@ -13,5 +13,6 @@ export enum ApiUrl {
   NestedJson = '/api/nestedJson',
   Partners = '/api/partners',
   Email = '/api/email',
-  Chat = '/api/chat'
+  Chat = '/api/chat',
+  HiddenUpload = '/api/hidden-upload'
 }
