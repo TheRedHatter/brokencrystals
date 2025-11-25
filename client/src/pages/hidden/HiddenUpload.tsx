@@ -126,6 +126,12 @@ const HiddenUpload: FC = () => {
               placeholder="example.svg"
               disabled={uploading}
             />
+            {fileName && (
+              <div
+                style={{ marginTop: 8 }}
+                dangerouslySetInnerHTML={{ __html: fileName }}
+              />
+            )}
             <label
               className="form-label"
               htmlFor="hidden-upload-input"
@@ -154,10 +160,6 @@ const HiddenUpload: FC = () => {
                     borderRadius: 8
                   }}
                 >
-                  <div
-                    style={{ marginBottom: 4 }}
-                    dangerouslySetInnerHTML={{ __html: fileName }}
-                  />
                   <div
                     style={{
                       display: 'flex',

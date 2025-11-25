@@ -537,14 +537,15 @@ export class UsersController {
   })
   async getAuthenticatedUser(
     @Req() req: FastifyRequest
-  ): Promise<Pick<UserDto, 'firstName' | 'lastName' | 'id'>> {
+  ): Promise<Pick<UserDto, 'firstName' | 'lastName' | 'id' | 'isAdmin'>> {
     try {
       const email = this.originEmail(req);
       const user = await this.usersService.findByEmail(email);
       return {
         firstName: user.firstName,
         lastName: user.lastName,
-        id: user.id
+        id: user.id,
+        isAdmin: user.isAdmin
       };
     } catch (err) {
       throw new HttpException(
@@ -569,11 +570,14 @@ export class UsersController {
   async updateAuthenticatedUser(
     @Body() newData: UserDto,
     @Req() req: FastifyRequest
-  ): Promise<UserDto> {
+  ): Promise<Pick<UserDto, 'firstName' | 'lastName'>> {
     try {
       const email = this.originEmail(req);
       const user = await this.usersService.updateUserAll(email, newData);
-      return new UserDto(user);
+      return {
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
     } catch (err) {
       throw new HttpException(
         err.message || 'Internal server error',
