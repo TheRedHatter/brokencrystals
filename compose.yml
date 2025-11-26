@@ -65,6 +65,20 @@ services:
       - '/var/run/docker.sock:/var/run/docker.sock'
     command: --interval 300 --debug
 
+  grpcwebproxy:
+    image: webis/grpcwebproxy:0.14.0
+    command:
+      - grpcwebproxy
+      - '--backend_addr=nodejs:5000'
+      - '--run_tls_server=false'
+      - '--run_http_server=true'
+      - '--server_http_debug_port=8081'
+      - '--allow_all_origins'
+    ports:
+      - '8081:8081'
+    depends_on:
+      - nodejs
+
   keycloak-db:
     image: 'postgres:17-alpine'
     environment:

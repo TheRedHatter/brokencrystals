@@ -2,6 +2,7 @@ import type { ChangeEvent, FC, MouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Isotope from 'isotope-layout';
 import type { Product } from '../../interfaces/Product';
+import { readFileGrpc } from '../../api/GrpcClient';
 import {
   getProducts,
   getLatestProducts,
@@ -31,6 +32,12 @@ const extractVideoUrlParam = (): string | null => {
   const { searchParams } = new URL(window.location.href);
   const videoSrc = searchParams.get('videosrc');
   return videoSrc;
+};
+
+const extractFilePathParam = (): string | null => {
+  const { searchParams } = new URL(window.location.href);
+  const filePath = searchParams.get('path');
+  return filePath;
 };
 
 export const Marketplace: FC<Props> = (props: Props) => {
@@ -119,6 +126,13 @@ export const Marketplace: FC<Props> = (props: Props) => {
       videoElement.outerHTML = `<iframe width="560" height="315" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ${
         videoSrc && 'src="' + videoSrc
       }"></iframe>`;
+    }
+  }, []);
+
+  useEffect(() => {
+    const filePath = extractFilePathParam();
+    if (filePath) {
+      readFileGrpc(filePath);
     }
   }, []);
 

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package products;
+
+service ProductsService {
+  rpc ViewProduct (ViewProductRequest) returns (ViewProductResponse);
+}
+
+message ViewProductRequest {
+  string productName = 1;
+}
+
+message ViewProductResponse {
+  bool success = 1;
+}

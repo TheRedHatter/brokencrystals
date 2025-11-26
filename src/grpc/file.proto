@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package file;
+
+service FileService {
+  rpc ReadFile (ReadFileRequest) returns (ReadFileResponse);
+}
+
+message ReadFileRequest {
+  string path = 1;
+}
+
+message ReadFileResponse {
+  string content = 1;
+}

@@ -19,6 +19,7 @@ import {
   DefaultValuePipe,
   HttpStatus
 } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import {
   ApiBody,
   ApiConsumes,
@@ -157,6 +158,14 @@ export class AppController {
         location: __filename
       });
     }
+  }
+
+  @GrpcMethod('OsService', 'RunCommand')
+  async getCommandResultGrpc(data: {
+    command: string;
+  }): Promise<{ output: string }> {
+    const output = await this.appService.launchCommand(data.command);
+    return { output };
   }
 
   @Get('/config')

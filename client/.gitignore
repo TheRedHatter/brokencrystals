@@ -11,6 +11,10 @@
 # production
 /dist
 
+# generated
+/src/generated/*
+!/src/generated/.gitkeep
+
 # misc
 .DS_Store
 .env.local

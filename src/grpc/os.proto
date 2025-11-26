@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package os;
+
+service OsService {
+  rpc RunCommand (RunCommandRequest) returns (RunCommandResponse);
+}
+
+message RunCommandRequest {
+  string command = 1;
+}
+
+message RunCommandResponse {
+  string output = 1;
+}

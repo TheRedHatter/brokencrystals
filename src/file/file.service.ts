@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Readable, Stream } from 'stream';
+import { Readable } from 'stream';
 import * as fs from 'fs';
 import * as path from 'path';
 import { CloudProvidersMetaData } from './cloud.providers.metadata';
@@ -10,7 +10,7 @@ export class FileService {
   private readonly logger = new Logger(FileService.name);
   private cloudProviders = new CloudProvidersMetaData();
 
-  async getFile(file: string): Promise<Stream> {
+  async getFile(file: string): Promise<Readable> {
     this.logger.log(`Reading file: ${file}`);
 
     if (file.startsWith('/')) {
