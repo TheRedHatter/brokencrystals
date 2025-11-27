@@ -4,9 +4,6 @@
 
 FROM node:18-alpine AS build
 
-ARG VITE_GRPC_URL
-ENV VITE_GRPC_URL=${VITE_GRPC_URL}
-
 WORKDIR /usr/src/app
 
 # Copy and build NestJS server project

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { HeadersConfiguratorInterceptor } from './components/headers.configurator.interceptor';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import fastifyCookie from '@fastify/cookie';
+import fastifyHttpProxy from '@fastify/http-proxy';
 import session from '@fastify/session';
 import { GlobalExceptionFilter } from './components/global-exception.filter';
 import * as os from 'os';
@@ -161,6 +162,17 @@ async function bootstrap() {
       render: renderDirList
     },
     serveDotFiles: true
+  });
+
+  await server.register(fastifyHttpProxy, {
+    prefix: '/grpc',
+    upstream: process.env.GRPC_WEB_PROXY_URL,
+    replyOptions: {
+      rewriteRequestHeaders: (req, headers) => ({
+        ...headers,
+        host: undefined
+      })
+    }
   });
 
   const app: NestFastifyApplication = await NestFactory.create(

@@ -64,8 +64,6 @@ services:
     build:
       context: '.'
       dockerfile: Dockerfile
-      args:
-        VITE_GRPC_URL: http://localhost:8081
     restart: always
     healthcheck:
       interval: 5s
@@ -74,6 +72,7 @@ services:
       timeout: 30s
     environment:
       URL: http://localhost:3000
+      GRPC_WEB_PROXY_URL: ${GRPC_WEB_PROXY_URL}
       CHAT_API_URL: http://ollama:11434/v1/chat/completions
       CHAT_API_MODEL: smollm:135m
       CHAT_API_TOKEN: ''
