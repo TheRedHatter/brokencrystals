@@ -99,11 +99,13 @@ services:
     image: webis/grpcwebproxy:0.14.0
     command:
       - grpcwebproxy
-      - '--backend_addr=host.docker.internal:5000'
+      - '--backend_addr=host.docker.gateway:5000'
       - '--run_tls_server=false'
       - '--run_http_server=true'
       - '--server_http_debug_port=8081'
       - '--allow_all_origins'
+    extra_hosts:
+      - 'host.docker.gateway:host-gateway'
     ports:
       - '8081:8081'
     depends_on:
