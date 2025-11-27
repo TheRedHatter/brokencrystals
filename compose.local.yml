@@ -64,6 +64,8 @@ services:
     build:
       context: '.'
       dockerfile: Dockerfile
+      args:
+        VITE_GRPC_URL: http://localhost:8081
     restart: always
     healthcheck:
       interval: 5s

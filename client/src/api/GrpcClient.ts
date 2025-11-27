@@ -29,7 +29,8 @@ export class GrpcClient {
   public os: OsServiceClient;
 
   private constructor() {
-    const baseUrl = import.meta.env.VITE_GRPC_URL || 'http://localhost:8081';
+    const baseUrl =
+      import.meta.env.VITE_GRPC_URL || `${window.location.origin}/grpc`;
     const channel = createChannel(baseUrl);
 
     this.products = createClient(ProductsServiceDefinition, channel);
