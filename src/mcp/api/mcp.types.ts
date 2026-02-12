@@ -40,16 +40,43 @@ export class McpResponse {
   id?: string | number;
 }
 
+export interface McpServerInfo {
+  name: string;
+  version: string;
+}
+
+export interface McpSessionInfo {
+  mcpSessionId: string;
+  initializedAt: number;
+  lastSeenAt: number;
+  authenticated: boolean;
+  role: 'guest' | 'user' | 'admin';
+  ttlMs: number;
+  user?: string;
+}
+
+export interface McpInitializeResult {
+  protocolVersion: string;
+  capabilities: {
+    tools: Record<string, never>;
+  };
+  serverInfo: McpServerInfo;
+  session?: McpSessionInfo;
+}
+
 // Tool definitions
 export interface McpTool {
   name: string;
   description: string;
+  accessLevel?: McpToolAccessLevel;
   inputSchema: {
     type: string;
     properties: Record<string, unknown>;
     required?: string[];
   };
 }
+
+export type McpToolAccessLevel = 'public' | 'authenticated' | 'admin';
 
 export interface McpToolCallParams {
   name: string;
