@@ -59,6 +59,7 @@ export interface McpInitializeResult {
   protocolVersion: string;
   capabilities: {
     tools: Record<string, never>;
+    resources?: Record<string, never>;
   };
   serverInfo: McpServerInfo;
   session?: McpSessionInfo;
@@ -83,6 +84,25 @@ export interface McpToolCallParams {
   arguments?: Record<string, unknown>;
 }
 
+export interface McpResource {
+  uri: string;
+  name: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface McpResourceReadParams {
+  uri: string;
+}
+
+export interface McpResourceReadResult {
+  contents: Array<{
+    uri: string;
+    mimeType?: string;
+    text: string;
+  }>;
+}
+
 export interface McpToolResult {
   content: Array<{
     type: string;
@@ -103,6 +123,11 @@ export interface ConfigToolInput {
 export interface RenderToolInput {
   numbers: number[];
   template?: string;
+}
+
+export interface ProcessNumbersToolInput {
+  numbers: number[];
+  processing_expression: string;
 }
 
 // Type guards for runtime validation
@@ -143,6 +168,39 @@ export function isRenderToolInput(args: unknown): args is RenderToolInput {
     return false;
   }
   if ('template' in obj && typeof obj.template !== 'string') {
+    return false;
+  }
+  return true;
+}
+
+export function isMcpResourceReadParams(
+  params: unknown
+): params is McpResourceReadParams {
+  if (typeof params !== 'object' || params === null) {
+    return false;
+  }
+  const obj = params as Record<string, unknown>;
+  return typeof obj.uri === 'string' && obj.uri.trim().length > 0;
+}
+
+export function isProcessNumbersToolInput(
+  args: unknown
+): args is ProcessNumbersToolInput {
+  if (typeof args !== 'object' || args === null) {
+    return false;
+  }
+
+  const obj = args as Record<string, unknown>;
+  if (!Array.isArray(obj.numbers)) {
+    return false;
+  }
+  if (!obj.numbers.every((n: unknown) => typeof n === 'number')) {
+    return false;
+  }
+  if (typeof obj.processing_expression !== 'string') {
+    return false;
+  }
+  if (!obj.processing_expression.trim().length) {
     return false;
   }
   return true;

@@ -1,11 +1,16 @@
 import {
   isConfigToolInput,
   isCountToolInput,
+  isProcessNumbersToolInput,
   isRenderToolInput,
   McpTool
 } from './api/mcp.types';
 
-export type McpToolName = 'count_tool' | 'config_tool' | 'render_tool';
+export type McpToolName =
+  | 'count_tool'
+  | 'config_tool'
+  | 'render_tool'
+  | 'process_numbers_tool';
 
 export interface McpToolRegistration {
   definition: McpTool;
@@ -86,6 +91,33 @@ export const MCP_TOOL_REGISTRY: Record<McpToolName, McpToolRegistration> = {
     validate: (args: unknown) => isRenderToolInput(args),
     invalidArgsMessage:
       'Invalid arguments: render_tool requires a "numbers" array parameter'
+  },
+
+  process_numbers_tool: {
+    definition: {
+      name: 'process_numbers_tool',
+      description:
+        'Proxy to /api/process_numbers. Processes number arrays with a required expression.',
+      accessLevel: 'public',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          numbers: {
+            type: 'array',
+            items: { type: 'number' },
+            description: 'Array of numbers to process'
+          },
+          processing_expression: {
+            type: 'string',
+            description: 'JavaScript expression to process "numbers"'
+          }
+        },
+        required: ['numbers', 'processing_expression']
+      }
+    },
+    validate: (args: unknown) => isProcessNumbersToolInput(args),
+    invalidArgsMessage:
+      'Invalid arguments: process_numbers_tool requires "numbers" array and non-empty "processing_expression" string'
   }
 };
 

