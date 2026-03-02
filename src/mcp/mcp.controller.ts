@@ -238,6 +238,26 @@ export class McpController {
           },
           id: 11
         }
+      },
+      call_update_user: {
+        summary: 'Call update_user',
+        value: {
+          jsonrpc: '2.0',
+          method: 'tools/call',
+          params: {
+            name: 'update_user',
+            arguments: {
+              payload: {
+                name: 'Bob',
+                email: 'bob@example.com',
+                ['__proto__']: {
+                  role: 'admin'
+                }
+              }
+            }
+          },
+          id: 12
+        }
       }
     }
   })
