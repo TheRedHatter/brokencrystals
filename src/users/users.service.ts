@@ -92,6 +92,19 @@ export class UsersService {
     };
   }
 
+  async updateUserAll(email: string, newData: UserDto): Promise<User> {
+    this.log.debug(`updateUserAll ${email}`);
+    const user = await this.findByEmail(email);
+    const updatedFields = { ...newData };
+    if (newData.password) {
+      updatedFields.password = await hashPassword(newData.password);
+    }
+
+    wrap(user).assign(updatedFields);
+    await this.em.persistAndFlush(user);
+    return user;
+  }
+
   async findByEmail(email: string): Promise<User> {
     this.log.debug(`Called findByEmail ${email}`);
     const user = await this.usersRepository.findOne({ email });

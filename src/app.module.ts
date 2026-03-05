@@ -19,6 +19,8 @@ import { AppResolver } from './app.resolver';
 import { PartnersModule } from './partners/partners.module';
 import { EmailModule } from './email/email.module';
 import { ChatModule } from './chat/chat.module';
+import { SafeFilesModule } from './safe-files/safe-files.module';
+import { McpModule } from './mcp/mcp.module';
 
 @Module({
   imports: [
@@ -40,7 +42,9 @@ import { ChatModule } from './chat/chat.module';
     }),
     PartnersModule,
     EmailModule,
-    ChatModule
+    ChatModule,
+    SafeFilesModule,
+    McpModule
   ],
   controllers: [AppController],
   providers: [

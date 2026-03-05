@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package testimonials;
+
+service TestimonialsService {
+  rpc TestimonialsCount (TestimonialsCountRequest) returns (TestimonialsCountResponse);
+}
+
+message TestimonialsCountRequest {
+  string query = 1;
+}
+
+message TestimonialsCountResponse {
+  int32 count = 1;
+}

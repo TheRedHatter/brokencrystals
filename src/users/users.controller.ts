@@ -33,7 +33,8 @@ import {
   ApiOperation,
   ApiQuery,
   ApiTags,
-  ApiUnauthorizedResponse
+  ApiUnauthorizedResponse,
+  ApiExcludeEndpoint
 } from '@nestjs/swagger';
 import { CreateUserRequest, SignupMode } from './api/CreateUserRequest';
 import { UserDto } from './api/UserDto';
@@ -58,7 +59,9 @@ import {
   SWAGGER_DESC_ADMIN_RIGHTS,
   SWAGGER_DESC_FIND_USERS,
   SWAGGER_DESC_FIND_FULL_USER_INFO,
-  SWAGGER_DESC_DELETE_PHOTO_USER_BY_ID
+  SWAGGER_DESC_DELETE_PHOTO_USER_BY_ID,
+  SWAGGER_DESC_GET_SELF,
+  SWAGGER_DESC_UPDATE_SELF
 } from './users.controller.swagger.desc';
 import { AdminGuard } from './users.guard';
 import { PermissionDto } from './api/PermissionDto';
@@ -512,6 +515,75 @@ export class UsersController {
   })
   getAdminStatus(@Param('email') email: string): Promise<PermissionDto> {
     return this.usersService.getPermissions(email);
+  }
+
+  @Get('/me')
+  @UseGuards(AuthGuard)
+  @ApiExcludeEndpoint()
+  @JwtType(JwtProcessorType.RSA)
+  @ApiOperation({
+    description: SWAGGER_DESC_GET_SELF
+  })
+  @ApiOkResponse({
+    schema: {
+      type: 'object',
+      properties: {
+        firstName: { type: 'string' },
+        lastName: { type: 'string' },
+        id: { type: 'number' }
+      }
+    },
+    description: 'Returns authenticated user data'
+  })
+  async getAuthenticatedUser(
+    @Req() req: FastifyRequest
+  ): Promise<Pick<UserDto, 'firstName' | 'lastName' | 'id' | 'isAdmin'>> {
+    try {
+      const email = this.originEmail(req);
+      const user = await this.usersService.findByEmail(email);
+      return {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        id: user.id,
+        isAdmin: user.isAdmin
+      };
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || 500
+      );
+    }
+  }
+
+  @Put('/me')
+  @UseGuards(AuthGuard)
+  @JwtType(JwtProcessorType.RSA)
+  @ApiExcludeEndpoint()
+  @SerializeOptions({ groups: [FULL_USER_INFO] })
+  @ApiOperation({
+    description: SWAGGER_DESC_UPDATE_SELF
+  })
+  @ApiOkResponse({
+    type: UserDto,
+    description: 'Returns updated authenticated user'
+  })
+  async updateAuthenticatedUser(
+    @Body() newData: UserDto,
+    @Req() req: FastifyRequest
+  ): Promise<Pick<UserDto, 'firstName' | 'lastName'>> {
+    try {
+      const email = this.originEmail(req);
+      const user = await this.usersService.updateUserAll(email, newData);
+      return {
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+    } catch (err) {
+      throw new HttpException(
+        err.message || 'Internal server error',
+        err.status || 500
+      );
+    }
   }
 
   @Put('/one/:email/photo')

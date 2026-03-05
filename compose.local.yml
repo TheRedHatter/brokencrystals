@@ -8,9 +8,9 @@ services:
       test: ['CMD-SHELL', 'pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}']
       timeout: 45s
     environment:
-      POSTGRES_DB: bc
-      POSTGRES_USER: bc
-      POSTGRES_PASSWORD: bc
+      POSTGRES_DB: ${DATABASE_SCHEMA}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - '5432:5432'
     volumes:
@@ -72,12 +72,14 @@ services:
       timeout: 30s
     environment:
       URL: http://localhost:3000
-      CHAT_API_URL: http://ollama:11434/v1/chat/completions
-      CHAT_API_MODEL: smollm:135m
-      CHAT_API_TOKEN: ''
-      CHAT_API_MAX_TOKENS: 200
+      GRPC_WEB_PROXY_URL: ${GRPC_WEB_PROXY_URL}
+      CHAT_API_URL: ${CHAT_API_URL}
+      CHAT_API_MODEL: ${CHAT_API_MODEL}
+      CHAT_API_TOKEN: ${CHAT_API_TOKEN}
+      CHAT_API_MAX_TOKENS: ${CHAT_API_MAX_TOKENS}
     ports:
       - '3000:3000'
+      - '5000:5000'
     logging:
       options:
         max-file: '5'
@@ -91,6 +93,22 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
+
+  grpcwebproxy:
+    image: webis/grpcwebproxy:0.14.0
+    command:
+      - grpcwebproxy
+      - '--backend_addr=host.docker.gateway:5000'
+      - '--run_tls_server=false'
+      - '--run_http_server=true'
+      - '--server_http_debug_port=8081'
+      - '--allow_all_origins'
+    extra_hosts:
+      - 'host.docker.gateway:host-gateway'
+    ports:
+      - '8081:8081'
+    depends_on:
+      - nodejs
 
   mailcatcher:
     image: 'sj26/mailcatcher'

@@ -10,6 +10,7 @@ import {
   Query,
   Res
 } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import {
   ApiHeader,
   ApiInternalServerErrorResponse,
@@ -324,5 +325,15 @@ export class FileController {
       this.logger.error(err.message);
       res.status(HttpStatus.NOT_FOUND);
     }
+  }
+
+  @GrpcMethod('FileService', 'ReadFile')
+  async readFileGrpc(data: { path: string }): Promise<{ content: string }> {
+    const stream = await this.fileService.getFile(data.path);
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return { content: Buffer.concat(chunks).toString('utf-8') };
   }
 }

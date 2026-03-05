@@ -8,9 +8,9 @@ services:
       test: ['CMD-SHELL', 'pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}']
       timeout: 45s
     environment:
-      POSTGRES_DB: bc
-      POSTGRES_USER: bc
-      POSTGRES_PASSWORD: bc
+      POSTGRES_DB: ${DATABASE_SCHEMA}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     ports:
       - '5432:5432'
     volumes:
@@ -28,10 +28,11 @@ services:
       timeout: 30s
     environment:
       NODE_ENV: production
-      CHAT_API_URL: http://ollama:11434/v1/chat/completions
-      CHAT_API_MODEL: smollm:135m
-      CHAT_API_TOKEN: ''
-      CHAT_API_MAX_TOKENS: 200
+      GRPC_WEB_PROXY_URL: ${GRPC_WEB_PROXY_URL}
+      CHAT_API_URL: ${CHAT_API_URL}
+      CHAT_API_MODEL: ${CHAT_API_MODEL}
+      CHAT_API_TOKEN: ${CHAT_API_TOKEN}
+      CHAT_API_MAX_TOKENS: ${CHAT_API_MAX_TOKENS}
     deploy:
       restart_policy:
         condition: on-failure
@@ -64,6 +65,20 @@ services:
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
     command: --interval 300 --debug
+
+  grpcwebproxy:
+    image: webis/grpcwebproxy:0.14.0
+    command:
+      - grpcwebproxy
+      - '--backend_addr=nodejs:5000'
+      - '--run_tls_server=false'
+      - '--run_http_server=true'
+      - '--server_http_debug_port=8081'
+      - '--allow_all_origins'
+    ports:
+      - '8081:8081'
+    depends_on:
+      - nodejs
 
   keycloak-db:
     image: 'postgres:17-alpine'

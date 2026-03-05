@@ -6,8 +6,11 @@ import {
   Headers,
   InternalServerErrorException,
   Query,
-  BadRequestException
+  BadRequestException,
+  HttpException,
+  HttpStatus
 } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import {
   ApiOperation,
   ApiOkResponse,
@@ -15,7 +18,8 @@ import {
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
   ApiHeader,
-  ApiQuery
+  ApiQuery,
+  ApiExcludeEndpoint
 } from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import { JwtProcessorType } from '../auth/auth.service';
@@ -26,7 +30,8 @@ import { Product } from '../model/product.entity';
 import {
   API_DESC_GET_LATEST_PRODUCTS,
   API_DESC_GET_PRODUCTS,
-  API_DESC_GET_VIEW_PRODUCT
+  API_DESC_GET_VIEW_PRODUCT,
+  API_DESC_SEARCH_PRODUCTS_BY_NAME
 } from './products.controller.api.desc';
 
 @Controller('/api/products')
@@ -112,6 +117,35 @@ export class ProductsController {
     return products.map((p: Product) => new ProductDto(p));
   }
 
+  @Get('search')
+  @UseGuards(AuthGuard)
+  @JwtType(JwtProcessorType.RSA)
+  @ApiExcludeEndpoint()
+  @ApiQuery({ name: 'name', example: 'Amethyst', required: true })
+  @ApiOperation({
+    description: API_DESC_SEARCH_PRODUCTS_BY_NAME
+  })
+  @ApiOkResponse({
+    type: ProductDto,
+    isArray: true
+  })
+  async searchProductsByName(
+    @Query('name') name: string
+  ): Promise<ProductDto[]> {
+    if (!name) {
+      throw new BadRequestException('Product name is required');
+    }
+    try {
+      const products = await this.productsService.searchByName(name);
+      return products.map((p: Product) => new ProductDto(p));
+    } catch (err) {
+      throw new HttpException(
+        { statusCode: HttpStatus.OK, error: err.message },
+        HttpStatus.OK
+      );
+    }
+  }
+
   @Get('views')
   @ApiHeader({ name: 'x-product-name', example: 'Amethyst' })
   @ApiOperation({
@@ -139,5 +173,14 @@ export class ProductsController {
         location: __filename
       });
     }
+  }
+
+  @GrpcMethod('ProductsService', 'ViewProduct')
+  async viewProductGrpc(data: {
+    productName: string;
+  }): Promise<{ success: boolean }> {
+    const query = `UPDATE product SET views_count = views_count + 1 WHERE name = '${data.productName}'`;
+    await this.productsService.updateProduct(query);
+    return { success: true };
   }
 }

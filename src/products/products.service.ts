@@ -50,6 +50,27 @@ export class ProductsService {
     );
   }
 
+  async searchByName(name: string): Promise<Product[]> {
+    this.logger.debug(`Search products by name containing "${name}"`);
+    try {
+      const query = `
+        select *
+        from product
+        where name ilike '%${name}%';
+      `;
+      const rows = await this.em.getConnection().execute<Product[]>(query);
+
+      return rows.map((row: Product) => this.em.map(Product, row));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Failed to search products by name "${name}": ${message}`,
+        err instanceof Error ? err.stack : undefined
+      );
+      throw err;
+    }
+  }
+
   async updateProduct(query: string): Promise<void> {
     try {
       this.logger.debug(`Updating products table with query "${query}"`);

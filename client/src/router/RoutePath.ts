@@ -8,5 +8,6 @@ export enum RoutePath {
   Userprofile = '/userprofile',
   Adminpage = '/adminpage',
   Dashboard = '/dashboard',
-  Chat = '/chat'
+  Chat = '/chat',
+  HiddenUpload = '/hidden-upload'
 }

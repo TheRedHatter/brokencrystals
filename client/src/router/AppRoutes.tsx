@@ -12,6 +12,7 @@ import PasswordCheck from '../pages/auth/LoginNew/PasswordCheck';
 import Dashboard from '../pages/auth/Dashboard';
 import Chat from '../pages/chat/Chat';
 import NotFound from '../pages/NotFound';
+import HiddenUpload from '../pages/hidden/HiddenUpload';
 
 export const AppRoutes: FC = () => {
   const user = sessionStorage.getItem('email') || localStorage.getItem('email');
@@ -106,6 +107,8 @@ export const AppRoutes: FC = () => {
           )
         }
       />
+
+      <Route path={RoutePath.HiddenUpload} element={<HiddenUpload />} />
 
       <Route path={RoutePath.Home} element={<Main />} />
 

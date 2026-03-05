@@ -5,6 +5,7 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "builder": "swc",
-    "typeCheck": false
+    "typeCheck": false,
+    "assets": ["**/*.proto"]
   }
 }

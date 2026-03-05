@@ -8,6 +8,7 @@ import type { OidcClient } from '../interfaces/Auth';
 import type { ChatMessage } from '../interfaces/ChatMessage';
 import { ApiUrl } from './ApiUrl';
 import { makeApiRequest } from './makeApiRequest';
+import type { HiddenUploadResponse } from '../interfaces/HiddenUploadResponse';
 
 function formatDateToYYYYMMDD(date: Date): string {
   const yyyy = date.getFullYear();
@@ -181,6 +182,26 @@ export function getUserPhoto(
         sessionStorage.getItem('token') || localStorage.getItem('token')
     },
     responseType: 'arraybuffer'
+  });
+}
+
+export function postHiddenUpload(
+  file: File,
+  fileName?: string
+): Promise<HiddenUploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (fileName) {
+    formData.append('fileName', fileName);
+  }
+
+  return makeApiRequest({
+    url: ApiUrl.HiddenUpload,
+    method: 'post',
+    data: formData,
+    headers: {
+      'content-type': 'multipart/form-data'
+    }
   });
 }
 

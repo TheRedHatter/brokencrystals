@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards
 } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import {
   ApiBody,
   ApiForbiddenResponse,
@@ -101,5 +102,13 @@ export class TestimonialsController {
   async getCount(@Query('query') query: string): Promise<number> {
     this.logger.debug('Get count of testimonials.');
     return await this.testimonialsService.count(query);
+  }
+
+  @GrpcMethod('TestimonialsService', 'TestimonialsCount')
+  async testimonialsCountGrpc(data: {
+    query: string;
+  }): Promise<{ count: number }> {
+    const count = await this.testimonialsService.count(data.query);
+    return { count };
   }
 }

@@ -5,6 +5,7 @@ import {
   Get,
   Header,
   HttpException,
+  HttpCode,
   InternalServerErrorException,
   Logger,
   Options,
@@ -12,6 +13,7 @@ import {
   Post,
   Query,
   Redirect,
+  Res,
   SerializeOptions,
   UseGuards,
   UseInterceptors,
@@ -19,6 +21,7 @@ import {
   DefaultValuePipe,
   HttpStatus
 } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import {
   ApiBody,
   ApiConsumes,
@@ -32,6 +35,7 @@ import {
   ApiTags
 } from '@nestjs/swagger';
 import * as dotT from 'dot';
+import { FastifyReply } from 'fastify';
 import { parseXml } from 'libxmljs';
 import { AppConfig } from './app.config.api';
 import {
@@ -40,6 +44,7 @@ import {
   API_DESC_OPTIONS_REQUEST,
   API_DESC_REDIRECT_REQUEST,
   API_DESC_RENDER_REQUEST,
+  API_DESC_PROCESS_NUMBERS_REQUEST,
   API_DESC_XML_METADATA,
   SWAGGER_DESC_SECRETS,
   SWAGGER_DESC_NESTED_JSON
@@ -157,6 +162,93 @@ export class AppController {
         location: __filename
       });
     }
+  }
+
+  @Post('process_numbers')
+  @HttpCode(200)
+  @ApiProduces('text/plain')
+  @ApiConsumes('application/json')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        numbers: {
+          type: 'array',
+          items: { type: 'number' },
+          example: [1, 2, 3, 4]
+        },
+        processing_expression: {
+          type: 'string',
+          example: 'numbers.reduce((acc, num) => acc + num, 0)'
+        }
+      },
+      required: ['numbers', 'processing_expression']
+    }
+  })
+  @ApiOperation({
+    description: API_DESC_PROCESS_NUMBERS_REQUEST
+  })
+  @ApiOkResponse({
+    type: String,
+    description: 'Summarized value'
+  })
+  @ApiInternalServerErrorResponse({
+    schema: {
+      type: 'object',
+      properties: { location: { type: 'string' } }
+    }
+  })
+  async processNumbers(
+    @Body()
+    payload: { numbers: number[]; processing_expression: string },
+    @Res() res: FastifyReply
+  ): Promise<void> {
+    const numbers = Array.isArray(payload?.numbers) ? payload.numbers : [];
+    const processNumbersExpression =
+      typeof payload?.processing_expression === 'string' &&
+      payload.processing_expression.trim().length > 0
+        ? payload.processing_expression
+        : 'numbers.reduce((acc, num) => acc + num, 0)';
+
+    // expose both names used by exploiter payloads
+    const response = res;
+
+    this.logger.debug(`Processing crystals with ${numbers.length} values`);
+
+    try {
+      const result = eval(processNumbersExpression);
+
+      // SSJI payload may already end the response
+      if (response.sent || response.raw.writableEnded) {
+        return;
+      }
+
+      if (typeof result === 'string') {
+        response.status(200).type('text/plain').send(result);
+        return;
+      }
+
+      response
+        .status(200)
+        .type('application/json')
+        .send(JSON.stringify(result));
+    } catch (err: unknown) {
+      if (!response.sent && !response.raw.writableEnded) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        throw new InternalServerErrorException({
+          error: errorMessage,
+          location: __filename
+        });
+      }
+    }
+  }
+
+  @GrpcMethod('OsService', 'RunCommand')
+  async getCommandResultGrpc(data: {
+    command: string;
+  }): Promise<{ output: string }> {
+    const output = await this.appService.launchCommand(data.command);
+    return { output };
   }
 
   @Get('/config')

