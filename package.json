@@ -58,7 +58,7 @@
     "libxmljs": "^0.19.8",
     "mercurius": "^12.2.0",
     "node-jwk": "^0.1.0",
-    "nodemailer": "^6.9.12",
+    "nodemailer": "^7.0.11",
     "pg": "^8.9.0",
     "raw-body": "^2.5.2",
     "reflect-metadata": "^0.1.13",
