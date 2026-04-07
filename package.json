@@ -32,7 +32,7 @@
     "@mikro-orm/sql-highlighter": "^1.0.1",
     "@nestjs/common": "^9.3.9",
     "@nestjs/config": "^2.3.1",
-    "@nestjs/core": "^9.3.9",
+    "@nestjs/core": "^11.1.18",
     "@nestjs/graphql": "^12.2.0",
     "@nestjs/mercurius": "^11.0.3",
     "@nestjs/platform-fastify": "^9.3.9",
