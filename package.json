@@ -39,7 +39,7 @@
     "@nestjs/swagger": "^6.2.1",
     "@sectester/bus": "^0.16.5",
     "@sectester/core": "^0.16.5",
-    "@sectester/repeater": "^0.16.5",
+    "@sectester/repeater": "^0.50.0",
     "@sectester/reporter": "^0.16.5",
     "@sectester/runner": "^0.16.5",
     "@sectester/scan": "^0.16.5",
