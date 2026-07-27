@@ -47,6 +47,17 @@ FROM node:14-alpine As production
 
 WORKDIR /usr/src/app
 
+# Intentionally pinned to known-vulnerable versions (via Alpine v3.10 archive repo)
+# to generate Snyk Container "introducedThrough" (image-layer) findings attributable
+# to Application Layer instructions (RUN/COPY/ADD), distinct from Base Layer (FROM)
+# findings. Tracked for ENG-127725 test-fixture generation.
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.10/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.10/community" >> /etc/apk/repositories
+RUN apk add --no-cache curl=7.66.0-r4
+RUN apk add --no-cache openssl=1.1.1k-r0
+RUN apk add --no-cache libxml2=2.9.9-r5
+RUN apk add --no-cache busybox=1.30.1-r5
+
 COPY --chown=node:node nest-cli.json ./
 COPY --chown=node:node mikro-orm.config.ts ./
 COPY --chown=node:node .env ./
