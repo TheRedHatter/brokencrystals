@@ -57,7 +57,7 @@
     "jwt-simple": "^0.5.6",
     "libxmljs": "^1.0.11",
     "mercurius": "^14.1.0",
-    "nodemailer": "^6.9.15",
+    "nodemailer": "^10.0.6",
     "pg": "^8.13.1",
     "raw-body": "^3.0.0",
     "reflect-metadata": "^0.2.2",
